@@ -584,7 +584,6 @@ int texBmpLoad(GSTEXTURE *texture, const char *path, int texId, short psm)
     else
         snprintf(filePath, sizeof(filePath), "%s.bmp", path);
 
-    texture->Delayed = 1;
     if (gsKit_texture_bmp(gsGlobal, texture, filePath) < 0)
         return ERR_BAD_FILE;
 

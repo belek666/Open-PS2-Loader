@@ -78,6 +78,10 @@ iop_device_t my_device = {
 
 int _start(int argc, char **argv)
 {
+    if (argc > 1) {
+        memcpy(&ioprpimg, &argv[1][0], 4);
+        memcpy(&ioprpsiz, &argv[1][4], 4);
+    }
     //DelDrv("img");
     AddDrv((iop_device_t *)&my_device);
 

@@ -87,9 +87,12 @@ typedef struct
 int LoadFileInit();
 void LoadFileExit();
 int LoadModule(const char *path, int arg_len, const char *args);
+int LoadIopMemModule(int mode, void *modptr, int arg_len, const char *args);
 int LoadMemModule(int mode, void *modptr, unsigned int modsize, int arg_len, const char *args);
+int LoadMemModuleComp(int mode, void *modptr, unsigned int modsize, int arg_len, const char *args);
 int GetOPLModInfo(int id, void **pointer, unsigned int *size);
 int LoadOPLModule(int id, int mode, int arg_len, const char *args);
+int LoadOPLModuleComp(int id, int mode, int arg_len, const char *args);
 int LoadElf(const char *path, t_ExecData *data);
 void ChangeModuleName(const char *name, const char *newname);
 #ifdef __EESIO_DEBUG

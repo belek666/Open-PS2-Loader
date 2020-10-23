@@ -21,7 +21,7 @@ extern int _iop_reboot_count;
 static void ResetIopSpecial(const char *args, unsigned int arglen)
 {
     void *pIOP_buffer, *IOPRP_img, *imgdrv_irx;
-    unsigned int length_rounded, CommandLen, size_IOPRP_img, size_imgdrv_irx;
+    unsigned int length_unc, CommandLen, size_IOPRP_img, size_imgdrv_irx;
     char command[RESET_ARG_MAX + 1];
 
     if (arglen > 0) {
@@ -39,15 +39,13 @@ static void ResetIopSpecial(const char *args, unsigned int arglen)
     GetOPLModInfo(OPL_MODULE_ID_IOPRP, &IOPRP_img, &size_IOPRP_img);
     GetOPLModInfo(OPL_MODULE_ID_IMGDRV, &imgdrv_irx, &size_imgdrv_irx);
 
-    length_rounded = (size_IOPRP_img + 0xF) & ~0xF;
-    pIOP_buffer = SifAllocIopHeap(length_rounded);
+    pIOP_buffer = UncompressOnIop(IOPRP_img, size_IOPRP_img, &length_unc);
 
-    CopyToIop(IOPRP_img, length_rounded, pIOP_buffer);
+    unsigned int argv[2];
+    argv[0] = (unsigned int)pIOP_buffer;
+    argv[1] = length_unc;
 
-    *(void **)(UNCACHED_SEG(&((unsigned char *)imgdrv_irx)[0x180])) = pIOP_buffer;
-    *(u32 *)(UNCACHED_SEG(&((unsigned char *)imgdrv_irx)[0x184])) = size_IOPRP_img;
-
-    LoadMemModule(0, imgdrv_irx, size_imgdrv_irx, 0, NULL);
+    LoadMemModuleComp(0, imgdrv_irx, size_imgdrv_irx, 8, (char *)&argv);
 
     DIntr();
     ee_kmode_enter();
@@ -55,7 +53,7 @@ static void ResetIopSpecial(const char *args, unsigned int arglen)
     ee_kmode_exit();
     EIntr();
 
-    LoadOPLModule(OPL_MODULE_ID_UDNL, SIF_RPC_M_NOWAIT, CommandLen, command);
+    LoadOPLModuleComp(OPL_MODULE_ID_UDNL, SIF_RPC_M_NOWAIT, CommandLen, command);
 
     DIntr();
     ee_kmode_enter();
@@ -86,25 +84,25 @@ static void ResetIopSpecial(const char *args, unsigned int arglen)
 #define PADEMU_ARG
 #endif
     if (GameMode == USB_MODE PADEMU_ARG) {
-        LoadOPLModule(OPL_MODULE_ID_USBD, 0, 11, "thpri=2,3");
+        LoadOPLModuleComp(OPL_MODULE_ID_USBD, 0, 11, "thpri=2,3");
     }
     if (GameMode == ETH_MODE) {
-        LoadOPLModule(OPL_MODULE_ID_SMSTCPIP, 0, 0, NULL);
-        LoadOPLModule(OPL_MODULE_ID_SMAP, 0, g_ipconfig_len, g_ipconfig);
-        LoadOPLModule(OPL_MODULE_ID_SMBINIT, 0, 0, NULL);
+        LoadOPLModuleComp(OPL_MODULE_ID_SMSTCPIP, 0, 0, NULL);
+        LoadOPLModuleComp(OPL_MODULE_ID_SMAP, 0, g_ipconfig_len, g_ipconfig);
+        LoadOPLModuleComp(OPL_MODULE_ID_SMBINIT, 0, 0, NULL);
     }
 
 #ifdef __LOAD_DEBUG_MODULES
     if (GameMode != ETH_MODE) {
-        LoadOPLModule(OPL_MODULE_ID_SMSTCPIP, 0, 0, NULL);
-        LoadOPLModule(OPL_MODULE_ID_SMAP, 0, g_ipconfig_len, g_ipconfig);
+        LoadOPLModuleComp(OPL_MODULE_ID_SMSTCPIP, 0, 0, NULL);
+        LoadOPLModuleComp(OPL_MODULE_ID_SMAP, 0, g_ipconfig_len, g_ipconfig);
     }
 #ifdef __DECI2_DEBUG
-    LoadOPLModule(OPL_MODULE_ID_DRVTIF, 0, 0, NULL);
-    LoadOPLModule(OPL_MODULE_ID_TIFINET, 0, 0, NULL);
+    LoadOPLModuleComp(OPL_MODULE_ID_DRVTIF, 0, 0, NULL);
+    LoadOPLModuleComp(OPL_MODULE_ID_TIFINET, 0, 0, NULL);
 #else
-    LoadOPLModule(OPL_MODULE_ID_UDPTTY, 0, 0, NULL);
-    LoadOPLModule(OPL_MODULE_ID_IOPTRAP, 0, 0, NULL);
+    LoadOPLModuleComp(OPL_MODULE_ID_UDPTTY, 0, 0, NULL);
+    LoadOPLModuleComp(OPL_MODULE_ID_IOPTRAP, 0, 0, NULL);
 #endif
 #endif
 }
@@ -147,15 +145,15 @@ int New_Reset_Iop(const char *arg, int arglen)
 
     if (iop_reboot_count >= 2) {
 #ifdef PADEMU
-        PadEmuSettings |= (LoadOPLModule(OPL_MODULE_ID_MCEMU, 0, 0, NULL) > 0) << 24;
+        PadEmuSettings |= (LoadOPLModuleComp(OPL_MODULE_ID_MCEMU, 0, 0, NULL) > 0) << 24;
 #else
-        LoadOPLModule(OPL_MODULE_ID_MCEMU, 0, 0, NULL);
+        LoadOPLModuleComp(OPL_MODULE_ID_MCEMU, 0, 0, NULL);
 #endif
     }
 
 #ifdef PADEMU
     if (iop_reboot_count >= 2 && EnablePadEmuOp) {
-        LoadOPLModule(OPL_MODULE_ID_PADEMU, 0, 4, (char *)&PadEmuSettings);
+        LoadOPLModuleComp(OPL_MODULE_ID_PADEMU, 0, 4, (char *)&PadEmuSettings);
     }
 #endif
 

@@ -32,6 +32,7 @@
 
 #define NEWLIB_PORT_AWARE
 #include <fileXio_rpc.h> // fileXioInit, fileXioExit, fileXioDevctl
+#include <lzma.h>
 
 typedef struct
 {
@@ -458,6 +459,8 @@ static unsigned int sendIrxKernelRAM(const char *startup, const char *mode_str, 
     irxptr_tab[modcount++].ptr = (void *)&imgdrv_irx;
     irxptr_tab[modcount].info = size_resetspu_irx | SET_OPL_MOD_ID(OPL_MODULE_ID_RESETSPU);
     irxptr_tab[modcount++].ptr = (void *)&resetspu_irx;
+    irxptr_tab[modcount].info = size_lzma2_irx | SET_OPL_MOD_ID(OPL_MODULE_ID_LZMA2);
+    irxptr_tab[modcount++].ptr = (void *)&lzma2_irx;
 
 #ifdef PADEMU
 #define PADEMU_ARG || gEnablePadEmu
@@ -545,7 +548,15 @@ static unsigned int sendIrxKernelRAM(const char *startup, const char *mode_str, 
 
         if (curIrxSize > 0) {
             LOG("SYSTEM IRX %u address start: %p end: %p\n", GET_OPL_MOD_ID(irxptr_tab[i].info), irxptr, irxptr + curIrxSize);
-            memcpy(irxptr, irxptr_tab[i].ptr, curIrxSize);
+            if (GET_OPL_MOD_ID(irxptr_tab[i].info) != OPL_MODULE_ID_LZMA2) {
+                int comp_size = 0;
+                lzma_easy_buffer_encode(2, LZMA_CHECK_CRC32, NULL, irxptr_tab[i].ptr, curIrxSize, irxptr, &comp_size, curIrxSize * 2);
+                LOG("size: %u compressed size: %u space saving: %d%% \n", curIrxSize, comp_size, 100 - comp_size * 100 / curIrxSize);
+                curIrxSize = comp_size;
+                irxptr_tab[i].info = curIrxSize | SET_OPL_MOD_ID(GET_OPL_MOD_ID(irxptr_tab[i].info));
+            } else {
+                memcpy(irxptr, irxptr_tab[i].ptr, curIrxSize);
+            }
 
             irxptr_tab[i].ptr = irxptr;
             irxptr += ((curIrxSize + 0xF) & ~0xF);

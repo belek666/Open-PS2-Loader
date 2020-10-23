@@ -79,6 +79,9 @@ extern int size_iremsndpatch_irx;
 extern void *libsd_irx;
 extern int size_libsd_irx;
 
+extern void *lzma2_irx;
+extern int size_lzma2_irx;
+
 extern void *mcman_irx;
 extern int size_mcman_irx;
 

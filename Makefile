@@ -85,7 +85,7 @@ IOP_OBJS =	iomanx.o filexio.o ps2fs.o usbd.o usbhdfsd.o usbhdfsdfsv.o \
 		libsd.o audsrv.o
 
 EECORE_OBJS = ee_core.o ioprp.o util.o \
-		elfldr.o udnl.o imgdrv.o eesync.o \
+		elfldr.o udnl.o imgdrv.o eesync.o lzma2.o \
 		usb_cdvdman.o IOPRP_img.o smb_cdvdman.o \
 		hdd_cdvdman.o hdd_hdpro_cdvdman.o cdvdfsv.o \
 		ingame_smstcpip.o smap_ingame.o smbman.o smbinit.o
@@ -101,7 +101,7 @@ EE_ASM_DIR = asm/
 MAPFILE = opl.map
 EE_LDFLAGS += -Wl,-Map,$(MAPFILE)
 
-EE_LIBS = -L$(PS2SDK)/ports/lib -L$(GSKIT)/lib -L./lib -lgskit -ldmakit -lgskit_toolkit -lpoweroff -lfileXio -lpatches -ljpeg -lpng -lz -ldebug -lm -lmc -lfreetype -lvux -lcdvd -lnetman -lps2ips -laudsrv -lpadx
+EE_LIBS = -L$(PS2SDK)/ports/lib -L$(GSKIT)/lib -L./lib -lgskit -ldmakit -lgskit_toolkit -lpoweroff -lfileXio -lpatches -ljpeg -lpng -lz -ldebug -lm -lmc -lfreetype -lvux -lcdvd -lnetman -lps2ips -laudsrv -lpadx -llzma
 EE_INCS += -I$(PS2SDK)/ports/include -I$(GSKIT)/include -I$(GSKIT)/ee/dma/include -I$(GSKIT)/ee/gs/include -I$(GSKIT)/ee/toolkit/include -Imodules/iopcore/common -Imodules/network/common -Imodules/hdd/common -Iinclude
 
 BIN2C = $(PS2SDK)/bin/bin2c
@@ -236,6 +236,8 @@ clean:
 	$(MAKE) -C modules/iopcore/imgdrv clean
 	echo " -eesync"
 	$(MAKE) -C modules/iopcore/eesync clean
+	echo " -lzma2"
+	$(MAKE) -C modules/iopcore/lzma2 clean
 	echo " -cdvdman"
 	$(MAKE) -C modules/iopcore/cdvdman USE_USB=1 clean
 	$(MAKE) -C modules/iopcore/cdvdman USE_SMB=1 clean
@@ -375,6 +377,12 @@ modules/iopcore/eesync/eesync.irx: modules/iopcore/eesync
 
 $(EE_ASM_DIR)eesync.s: modules/iopcore/eesync/eesync.irx | $(EE_ASM_DIR)
 	$(BIN2S) $< $@ eesync_irx
+
+modules/iopcore/lzma2/lzma2.irx: modules/iopcore/lzma2
+	$(MAKE) -C $<
+
+$(EE_ASM_DIR)lzma2.s: modules/iopcore/lzma2/lzma2.irx | $(EE_ASM_DIR)
+	$(BIN2S) $< $@ lzma2_irx
 
 modules/iopcore/cdvdman/usb_cdvdman.irx: modules/iopcore/cdvdman
 	$(MAKE) $(CDVDMAN_PS2LOGO_FLAGS) $(CDVDMAN_DEBUG_FLAGS) USE_USB=1 -C $< all

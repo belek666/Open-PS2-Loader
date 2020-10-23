@@ -74,6 +74,31 @@ int LoadModule(const char *path, int arg_len, const char *args)
     return arg.p.result;
 }
 
+int LoadIopMemModule(int mode, void *iopmem, int arg_len, const char *args)
+{
+    if (LoadFileInit() < 0)
+        return -SCE_EBINDMISS;
+
+    struct _lf_module_buffer_load_arg arg;
+
+    memset(&arg, 0, sizeof arg);
+
+    arg.p.ptr = iopmem;
+    if ((args) && (arg_len)) {
+        arg.q.arg_len = arg_len > LF_ARG_MAX ? LF_ARG_MAX : arg_len;
+        memcpy(arg.args, args, arg.q.arg_len);
+    } else
+        arg.q.arg_len = 0;
+
+    if (SifCallRpc(&_lf_cd, LF_F_MOD_BUF_LOAD, mode, &arg, sizeof(arg), &arg, 8, NULL, NULL) < 0)
+        return -SCE_ECALLMISS;
+
+    if (!(mode & SIF_RPC_M_NOWAIT))
+        SifFreeIopHeap(iopmem);
+
+    return arg.p.result;
+}
+
 /*----------------------------------------------------------------------------------------*/
 /* Load an irx module from path without waiting.                                          */
 /*----------------------------------------------------------------------------------------*/
@@ -109,24 +134,15 @@ int LoadMemModule(int mode, void *modptr, unsigned int modsize, int arg_len, con
         ;
     }
 
-    struct _lf_module_buffer_load_arg arg;
+    return LoadIopMemModule(mode, iopmem, arg_len, args);
+}
 
-    memset(&arg, 0, sizeof arg);
+int LoadMemModuleComp(int mode, void *modptr, unsigned int modsize, int arg_len, const char *args)
+{
+    int iopmod_size = 0;
+    void *iopmem = UncompressOnIop(modptr, modsize, &iopmod_size);
 
-    arg.p.ptr = iopmem;
-    if ((args) && (arg_len)) {
-        arg.q.arg_len = arg_len > LF_ARG_MAX ? LF_ARG_MAX : arg_len;
-        memcpy(arg.args, args, arg.q.arg_len);
-    } else
-        arg.q.arg_len = 0;
-
-    if (SifCallRpc(&_lf_cd, LF_F_MOD_BUF_LOAD, mode, &arg, sizeof(arg), &arg, 8, NULL, NULL) < 0)
-        return -SCE_ECALLMISS;
-
-    if (!(mode & SIF_RPC_M_NOWAIT))
-        SifFreeIopHeap(iopmem);
-
-    return arg.p.result;
+    return LoadIopMemModule(mode, iopmem, arg_len, args);
 }
 
 int GetOPLModInfo(int id, void **pointer, unsigned int *size)
@@ -155,6 +171,20 @@ int LoadOPLModule(int id, int mode, int arg_len, const char *args)
     if ((result = GetOPLModInfo(id, &pointer, &size)) == 0) {
         if (size > 0)
             result = LoadMemModule(mode, pointer, size, arg_len, args);
+    }
+
+    return result;
+}
+
+int LoadOPLModuleComp(int id, int mode, int arg_len, const char *args)
+{
+    int result;
+    void *pointer;
+    unsigned int size;
+
+    if ((result = GetOPLModInfo(id, &pointer, &size)) == 0) {
+        if (size > 0)
+            result = LoadMemModuleComp(mode, pointer, size, arg_len, args);
     }
 
     return result;

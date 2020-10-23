@@ -31,5 +31,6 @@ u32 *find_pattern_with_mask(u32 *buf, unsigned int bufsize, const u32 *pattern, 
 void CopyToIop(void *eedata, unsigned int size, void *iopptr);
 void WipeUserMemory(void *start, void *end);
 void delay(int count);
+void *UncompressOnIop(void *in, int in_size, int *out_size);
 
 #endif /* UTIL */

@@ -26,6 +26,7 @@ enum OPL_MODULE_ID {
 
     //Special patches
     OPL_MODULE_ID_IOP_PATCH,
+    OPL_MODULE_ID_LZMA2,
 
     OPL_MODULE_ID_COUNT
 };
